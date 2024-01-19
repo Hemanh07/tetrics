@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="tetrisCanvas" width="300" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("tetrisCanvas");
+        const ctx = canvas.getContext("2d");
+        const blockSize = 30;
+        const boardWidth = 10;
+        const boardHeight = 20;
+
+        const colors = [
+            "#FF0000", // Red
+            "#00FF00", // Green
+            "#0000FF", // Blue
+            "#FFFF00", // Yellow
+            "#FF00FF", // Magenta
+            "#00FFFF", // Cyan
+            "#FFA500"  // Orange
+        ];
+
+        const tetrominos = [
+            [
+                [1, 1, 1, 1] // I
+            ],
+            [
+                [1, 1, 1],
+                [1, 0, 0] // L
+            ],
+            [
+                [1, 1, 1],
+                [0, 0, 1] // J
+            ],
+            [
+                [1, 1],
+                [1, 1] // O
+            ],
+            [
+                [1, 1, 1],
+                [0, 1, 0] // T
+            ],
+            [
+                [1, 1, 0],
+                [0, 1, 1] // S
+            ],
+            [
+                [0, 1, 1],
+                [1, 1, 0] // Z
+            ]
+        ];
+
+        let board = Array.from({ length: boardHeight }, () => Array(boardWidth).fill(0));
+        let currentPiece;
+        let currentPieceColor;
+
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the board
+            drawBoard();
+
+            // Draw the current piece
+            if (currentPiece) {
+                drawPiece(currentPiece.piece, colors[currentPieceColor]);
+            }
+        }
+
+        function drawBoard() {
+            for (let row = 0; row < board.length; row++) {
+                for (let col = 0; col < board[row].length; col++) {
+                    if (board[row][col]) {
+                        drawBlock(col, row, colors[board[row][col] - 1]);
+                    }
+                }
+            }
+        }
+
+        function drawPiece(piece, color) {
+            piece.forEach((row, rowIndex) => {
+                row.forEach((value, colIndex) => {
+                    if (value) {
+                        drawBlock(currentPiece.x + colIndex, currentPiece.y + rowIndex, color);
+                    }
+                });
+            });
+        }
+
+        function drawBlock(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+            ctx.strokeStyle = "#333";
+            ctx.strokeRect(x * blockSize, y * blockSize, blockSize, blockSize);
+        }
+
+        function moveDown() {
+            if (isValidMove(0, 1)) {
+                currentPiece.y++;
+            } else {
+                placePiece();
+                clearLines();
+                spawnPiece();
+            }
+            draw();
+        }
+
+        function moveLeft() {
+            if (isValidMove(-1, 0)) {
+                currentPiece.x--;
+                draw();
+            }
+        }
+
+        function moveRight() {
+            if (isValidMove(1, 0)) {
+                currentPiece.x++;
+                draw();
+            }
+        }
+
+        function rotate() {
+            const rotatedPiece = rotatePiece(currentPiece.piece);
+            if (isValidMove(0, 0, rotatedPiece)) {
+                currentPiece.piece = rotatedPiece;
+                draw();
+            }
+        }
+
+        function isValidMove(deltaX, deltaY, newPiece = currentPiece.piece) {
+            for (let row = 0; row < newPiece.length; row++) {
+                for (let col = 0; col < newPiece[row].length; col++) {
+                    if (newPiece[row][col]) {
+                        const newX = currentPiece.x + col + deltaX;
+                        const newY = currentPiece.y + row + deltaY;
+
+                        // Check boundaries
+                        if (newX < 0 || newX >= boardWidth || newY >= boardHeight) {
+                            return false;
+                        }
+
+                        // Check collision with other blocks on the board
+                        if (board[newY] && board[newY][newX]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function rotatePiece(piece) {
+            const rotatedPiece = piece[0].map((_, i) => piece.map(row => row[i])).reverse();
+            return rotatedPiece;
+        }
+
+        function placePiece() {
+            currentPiece.piece.forEach((row, rowIndex) => {
+                row.forEach((value, colIndex) => {
+                    if (value) {
+                        const x = currentPiece.x + colIndex;
+                        const y = currentPiece.y + rowIndex;
+                        board[y][x] = currentPieceColor + 1; // Use color index as value
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            for (let row = boardHeight - 1; row >= 0; row--) {
+                if (board[row].every(value => value !== 0)) {
+                    // Clear the line
+                    board.splice(row, 1);
+
+                    // Add a new empty line at the top
+                    board.unshift(Array(boardWidth).fill(0));
+                }
+            }
+        }
+
+        function spawnPiece() {
+            const randomIndex = Math.floor(Math.random() * tetrominos.length);
+            currentPiece = {
+                piece: tetrominos[randomIndex],
+                x: Math.floor((boardWidth - tetrominos[randomIndex][0].length) / 2),
+                y: 0
+            };
+            currentPieceColor = randomIndex;
+            if (!isValidMove(0, 0)) {
+                // Game over
+                alert("Game Over!");
+                resetGame();
+            }
+        }
+
+        function resetGame() {
+            board = Array.from({ length: boardHeight }, () => Array(boardWidth).fill(0));
+            currentPiece = null;
+            currentPieceColor = null;
+            draw();
+        }
+
+        function startGame() {
+            resetGame();
+            spawnPiece();
+            setInterval(moveDown, 500);
+            document.addEventListener("keydown", handleKeyPress);
+            draw();
+        }
+
+        function handleKeyPress(event) {
+            switch (event.code) {
+                case "ArrowLeft":
+                    moveLeft();
+                    break;
+                case "ArrowRight":
+                    moveRight();
+                    break;
+                case "ArrowDown":
+                    moveDown();
+                    break;
+                case "ArrowUp":
+                    rotate();
+                    break;
+            }
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
