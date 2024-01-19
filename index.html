@@ -20,8 +20,17 @@
         }
     </style>
 </head>
-<body>
+<body style="display: flex;flex-direction: column;">
     <canvas id="tetrisCanvas" width="300" height="600"></canvas>
+    <button id="rotate">⬆️</button>
+    <br>
+    <div style="display: flex; gap: 10px;">
+        <button id="left">⬅️</button>
+        <br>
+        <button id="right">➡️</button>
+    </div>
+    <br>
+    <button id="down">⬇️</button>
 
     <script>
         const canvas = document.getElementById("tetrisCanvas");
@@ -29,7 +38,7 @@
         const blockSize = 30;
         const boardWidth = 10;
         const boardHeight = 20;
-
+        
         const colors = [
             "#FF0000", // Red
             "#00FF00", // Green
@@ -244,7 +253,30 @@
                     break;
             }
         }
-
+        const  rotateitem=document.getElementById("rotate");
+        rotateitem.addEventListener("click",()=>{
+            const rotatedPiece = rotatePiece(currentPiece.piece);
+            if (isValidMove(0, 0, rotatedPiece)) {
+                currentPiece.piece = rotatedPiece;
+                draw();
+            }
+        });
+        const  rightitem=document.getElementById("right");
+        rightitem.addEventListener("click",()=>{
+            if (isValidMove(1, 0)) {
+                currentPiece.x++;
+                draw();
+            }
+        })
+        const  leftitem=document.getElementById("left");
+        leftitem.addEventListener("click",()=>{
+           moveLeft();
+        })
+        const  downitem=document.getElementById("down");
+        downitem.addEventListener("click",()=>{
+           moveDown();
+           console.log("he")
+        })
         startGame();
     </script>
 </body>
